@@ -1,64 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Product Table</title>
+
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      padding: 30px;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f9f9f9;
+      padding: 40px;
     }
+
+    .table-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+      overflow-x: auto;
+    }
+
+    .table-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px;
+      border-bottom: 2px solid #eee;
+    }
+
+    .table-header h2 {
+      font-size: 24px;
+      color: #333;
+    }
+
+    .table-header input[type="search"] {
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 14px;
+      width: 200px;
+    }
+
     table {
-      border-collapse: collapse;
       width: 100%;
+      border-collapse: collapse;
+      margin: 0;
     }
-    table, th, td {
-      border: 1px solid #888;
-    }
+
     th, td {
-      padding: 8px;
+      padding: 14px 16px;
       text-align: left;
+      border-bottom: 1px solid #eee;
+      font-size: 14px;
     }
+
     th {
-      background-color: #f2f2f2;
+      background-color: #f5f5f5;
+      color: #333;
+      font-weight: 600;
+    }
+
+    tbody tr:hover {
+      background-color: #fafafa;
+    }
+
+    @media screen and (max-width: 768px) {
+      .table-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+
+      .table-header input[type="search"] {
+        width: 100%;
+      }
     }
   </style>
 </head>
+
 <body>
-  <h1>Product Table</h1>
-  <table id="csvTable"></table>
+  <div class="table-container">
+    <div class="table-header">
+      <h2>Product Table</h2>
+      <input type="search" id="searchBox" placeholder="Search..." />
+    </div>
 
-<script>
-  fetch('data.csv')
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-      return response.text();
-    })
-    .then(csv => {
-      const lines = csv.trim().split('\n');
-      const table = document.getElementById('csvTable');
+    <table id="csvTable"></table>
+  </div>
 
-      lines.forEach((line, index) => {
-        const row = document.createElement('tr');
-        const cells = line.split(',');
+  <script>
+    let allRows = []; // Store original CSV rows for search
 
-        cells.forEach(cell => {
-          const cellEl = document.createElement(index === 0 ? 'th' : 'td');
-          cellEl.textContent = cell.replace(/"/g, '');
-          row.appendChild(cellEl);
-        });
-
-        table.appendChild(row);
+    // Load CSV
+    fetch('data.csv')
+      .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        return response.text();
+      })
+      .then(csv => {
+        const lines = csv.trim().split('\n');
+        allRows = lines.map(line => line.split(',').map(cell => cell.replace(/"/g, '')));
+        renderTable(allRows);
+      })
+      .catch(error => {
+        console.error('Fetch error:', error);
+        document.getElementById('csvTable').innerHTML = '<tr><td colspan="100%">Error loading CSV file.</td></tr>';
       });
-    })
-    .catch(error => {
-      console.error('Fetch error:', error);
-      const table = document.getElementById('csvTable');
-      table.innerHTML = '<tr><td colspan="100%">Error loading CSV file. Check console for details.</td></tr>';
-    });
-</script>
 
+    // Render the table
+    function renderTable(data) {
+      const table = document.getElementById('csvTable');
+      table.innerHTML = ''; // Clear previous content
+
+      data.forEach((row, rowIndex) => {
+        const tr = document.createElement('tr');
+        row.forEach(cell => {
+          const cellElement = document.createElement(rowIndex === 0 ? 'th' : 'td');
+          cellElement.textContent = cell;
+          tr.appendChild(cellElement);
+        });
+        table.appendChild(tr);
+      });
+    }
+
+    // Search filter
+    document.getElementById('searchBox').addEventListener('input', function () {
+      const term = this.value.toLowerCase();
+      const filteredRows = [allRows[0], ...allRows.slice(1).filter(row => row.join(' ').toLowerCase().includes(term))];
+      renderTable(filteredRows);
+    });
+  </script>
 </body>
 </html>
