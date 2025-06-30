@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Product Table</title>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
   <style>
     * {
@@ -96,46 +97,52 @@
   </div>
 
   <script>
-    let allRows = []; // Store original CSV rows for search
-
-    // Load CSV
-    fetch('data.csv')
-      .then(response => {
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        return response.text();
-      })
-      .then(csv => {
-        const lines = csv.trim().split('\n');
-        allRows = lines.map(line => line.split(',').map(cell => cell.replace(/"/g, '')));
-        renderTable(allRows);
-      })
-      .catch(error => {
-        console.error('Fetch error:', error);
-        document.getElementById('csvTable').innerHTML = '<tr><td colspan="100%">Error loading CSV file.</td></tr>';
+  fetch('data.csv')
+    .then(response => response.text())
+    .then(csv => {
+      const parsed = Papa.parse(csv, {
+        header: true,
+        skipEmptyLines: true
       });
 
-    // Render the table
-    function renderTable(data) {
+      const headers = Object.keys(parsed.data[0]);
       const table = document.getElementById('csvTable');
-      table.innerHTML = ''; // Clear previous content
 
-      data.forEach((row, rowIndex) => {
+      // Add header row
+      const headerRow = document.createElement('tr');
+      headers.forEach(header => {
+        const th = document.createElement('th');
+        th.textContent = header;
+        headerRow.appendChild(th);
+      });
+      table.appendChild(headerRow);
+
+      // Add data rows
+      parsed.data.forEach(row => {
         const tr = document.createElement('tr');
-        row.forEach(cell => {
-          const cellElement = document.createElement(rowIndex === 0 ? 'th' : 'td');
-          cellElement.textContent = cell;
-          tr.appendChild(cellElement);
+        headers.forEach(key => {
+          const td = document.createElement('td');
+          td.textContent = row[key];
+          tr.appendChild(td);
         });
         table.appendChild(tr);
-      });
-    }
+        // Store all rows globally for filtering
+        const allRows = Array.from(table.querySelectorAll('tr')).slice(1); // skip header
+        document.getElementById('searchBox').addEventListener('input', function () { 
+            const value = this.value.toLowerCase();
+            allRows.forEach(row => {
+                const match = Array.from(row.children).some(td =>
+                 td.textContent.toLowerCase().includes(value)
+                 );
+                 row.style.display = match ? '' : 'none';
+                 });
+            });
 
-    // Search filter
-    document.getElementById('searchBox').addEventListener('input', function () {
-      const term = this.value.toLowerCase();
-      const filteredRows = [allRows[0], ...allRows.slice(1).filter(row => row.join(' ').toLowerCase().includes(term))];
-      renderTable(filteredRows);
+      });
+    })
+    .catch(error => {
+      console.error('Error parsing CSV:', error);
     });
-  </script>
+</script>
 </body>
 </html>
